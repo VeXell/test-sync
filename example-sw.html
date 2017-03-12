@@ -1,0 +1,193 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test requests</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>Debounce requests</h1>
+    </div>
+
+    <div>Is Service Worker supported ? <label class="label js-is-sw-enabled"></label></div>
+    <div>Is Periodic Sync supported ? <label class="label js-is-ps-enabled"></label></div>
+    <hr/>
+
+    <a href="#" data-link="link-1" class="js-link">Link 1</a> |
+    <a href="#" data-link="link-2" class="js-link">Link 2</a> |
+    <a href="#" data-link="link-3" class="js-link">Link 3</a>
+    <hr/>
+    <ol class="js-results"></ol>
+
+</div>
+
+<script
+        src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+        crossorigin="anonymous"></script>
+<script>
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function () {
+            var context = this,
+                    args = arguments;
+            var later = function () {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+</script>
+
+<script>
+    function Statistic($container) {
+        this.$output = $container.find('.js-results');
+
+        this.data = [];
+
+        this._debounceRequest = debounce(this.request.bind(this), 1500);
+        this._isSystemReady = false;
+
+        window.addEventListener('beforeunload', function (e) {
+            this.request();
+        }.bind(this), false);
+
+        if ('serviceWorker' in navigator) {
+
+            $container.find('.js-is-sw-enabled').text('Yes').addClass('label-success');
+
+            navigator.serviceWorker.addEventListener('message', function (event) {
+                console.log('Got message from Service Worker');
+                console.log(event);
+            });
+
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function (registration) {
+                    return navigator.serviceWorker.ready;
+                })
+                .then(function(registration){
+                    this.ready();
+                    return registration;
+                }.bind(this))
+                .then(function (registration) {
+                    console.info('Service worker was installer and ready to use');
+
+                    if (registration.periodicSync) {
+                        $container.find('.js-is-ps-enabled').text('Yes').addClass('label-success');
+
+                        registration.periodicSync.register({
+                            tag: 'periodicStatisticSync',
+                            minPeriod: 1000 * 30, // 30sec
+                            powerState: 'auto',
+                            networkState: 'online'
+                        })
+                        .then(function (event) {
+                            console.log('Periodic registration successful', event);
+                        })
+                        .catch(function (error) {
+                            console.log('Periodic registration failed', error);
+                        });
+                    } else {
+                        $container.find('.js-is-ps-enabled').text('No').addClass('label-danger');
+                        console.log("Background not supported");
+                    }
+                });
+        } else {
+            $container.find('.js-is-sw-enabled').text('No').addClass('label-danger');
+        }
+    }
+
+    Statistic.prototype.ready = function () {
+        this._isSystemReady = true;
+        this._debounceRequest();
+    };
+
+    Statistic.prototype.sendStatistic = function (data) {
+        this.log('Put to queue');
+        this.data.push(data);
+
+        if (this._isSystemReady) {
+            this._debounceRequest();
+        }
+    };
+
+    Statistic.prototype.request = function () {
+
+        if (this.data.length === 0) {
+            this._syncData();
+            return false;
+        }
+
+        this.log('Request to server. Data:' + JSON.stringify(this.data));
+
+        var data = this.data.slice();
+
+        this._makeRequest(data).then(function(){
+            this.log('Data has been successfully received to Service Worker');
+        }.bind(this)).catch(function(){
+            this.data = data.concat(this.data);
+        }.bind(this));
+
+        this.data = [];
+    };
+
+    Statistic.prototype._makeRequest = function (data) {
+        return this._sendMessageToServiceWorker({
+            command: 'stat',
+            data: data
+        });
+    };
+
+    Statistic.prototype._sendMessageToServiceWorker = function (message) {
+        return navigator.serviceWorker.ready.then(function (registration) {
+            navigator.serviceWorker.controller.postMessage(message);
+            return registration.sync.register('oneTimeStatisticSync');
+        });
+    };
+
+    Statistic.prototype._syncData = function () {
+        return navigator.serviceWorker.ready.then(function (registration) {
+            return registration.sync.register('oneTimeStatisticSync');
+        });
+    };
+
+    Statistic.prototype.log = function (message) {
+        var resultMessage = new Date().toLocaleString() + ' | ' + message;
+        var $log = $('<li>').text(resultMessage);
+        this.$output.append($log);
+    };
+</script>
+
+<script>
+    $(function () {
+        var $body = $('body');
+
+        var Stat = new Statistic($body);
+
+        $body.on('click', '.js-link', function (e) {
+            e.preventDefault();
+            Stat.sendStatistic({t: e.currentTarget.dataset.link});
+        });
+
+        setTimeout(function () {
+            Stat.sendStatistic({timer: 1});
+        }, 1000);
+
+        setTimeout(function () {
+            Stat.sendStatistic({timer: 2});
+        }, 2500);
+
+        setTimeout(function () {
+            Stat.sendStatistic({timer: 3});
+        }, 3500);
+    });
+</script>
+
+</body>
+</html>

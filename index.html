@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test requests</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>Send test requests</h1>
+    </div>
+    <a id="ex1" href="#" class="js-ajax-requests">Example 1: Send 8 ajax requests</a>
+    <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex2" href="#" class="js-request-analytics">Example 2: Send ajax data + analytics</a>
+    <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex3" href="#" class="js-request-analytics-domain">Example 3: Send ajax data + analytics other domain</a>
+    <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex4" href="#" class="js-worker-requests">Example 4: Make Fetch API request in worker</a>
+    <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex5" href="#" class="js-beacon-requests">Example 5: Send 6 ajax and 2 beacon requests</a>
+    <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex6" href="#" class="js-beacon-crossdomain">Example 6: Send 6 ajax and 6 beacon requests to other domain</a>
+    <ol class="js-results"></ol>
+</div>
+
+<script
+        src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+        crossorigin="anonymous"></script>
+<script>
+
+    function sendAjax(url, data) {
+        return $.ajax({
+            url: url,
+            timeout: 60000,
+            async: true,
+            data: data
+        });
+    }
+
+    $(function () {
+
+        var worker = new Worker('worker.js');
+        worker.addEventListener('message', function (e) {
+            var $workerContainer = $('.js-worker-requests').next('.js-results');
+            var $li = $('<li>').text(e.data);
+
+            $workerContainer.append($li);
+        }, false);
+
+        var $body = $('body');
+        var REQUEST_STAT_URL = 'http://local.localhost/testpool/server.php';
+        var REQUEST_URL = './server.php';
+        var REQUEST_DATA = {};
+
+        $body.on('click', '.js-ajax-requests', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            for (var i = 1; i <= 8; i++) {
+                (function (i) {
+                    var startDate = new Date();
+                    sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                        var endDate = new Date();
+                        var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                        var $li = $('<li>').text(text);
+
+                        $appendContainer.append($li);
+                    });
+                })(i);
+            }
+        });
+
+        $body.on('click', '.js-request-analytics', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles'));
+
+            for (var i = 1; i <= 6; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 2 && i <= 3) {
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=analytics');
+                    } else {
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request').done(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
+        });
+
+        $body.on('click', '.js-request-analytics-domain', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles'));
+
+            for (var i = 1; i <= 6; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 2 && i <= 3) {
+                        sendAjax(REQUEST_STAT_URL + '?r=' + i + '&m=analytics');
+                    } else {
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request').done(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
+        });
+
+        $body.on('click', '.js-beacon-requests', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            for (var i = 1; i <= 8; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 4 && i < 6) {
+                        navigator.sendBeacon(REQUEST_URL, JSON.stringify(REQUEST_DATA));
+                    } else {
+                        sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
+        });
+
+        $body.on('click', '.js-worker-requests', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            for (var i = 1; i <= 12; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 7) {
+                        worker.postMessage(JSON.stringify({
+                            method: 'sendStatistic',
+                            url: REQUEST_URL + '?r=' + i + '&s=worker',
+                            data: REQUEST_DATA,
+                            i: i
+                        }));
+                    } else {
+                        sendAjax(REQUEST_URL + '?r=' + i, REQUEST_DATA).done(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
+
+        });
+
+        $body.on('click', '.js-beacon-crossdomain', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            for (var i = 1; i <= 12; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 7) {
+                        navigator.sendBeacon(REQUEST_STAT_URL, JSON.stringify(REQUEST_DATA));
+                    } else {
+                        sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
+        });
+
+        window.onbeforeunload = function () {
+            navigator.sendBeacon(REQUEST_URL + '?t=1', JSON.stringify(REQUEST_DATA));
+            //fetch(REQUEST_URL + '?t=1', {body: JSON.stringify(REQUEST_DATA)});
+        };
+    });
+</script>
+</body>
+</html>
