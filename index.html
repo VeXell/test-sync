@@ -221,27 +221,65 @@
             e.preventDefault();
             var $appendContainer = $(e.currentTarget).next('.js-results');
             var n = 65536;
-            var requestData = new Array(n+1).join('X');
+            var requestData = new Array(n+2).join('X');
+            var text;
 
-            for (var i = 1; i <= 12; i++) {
-                (function (i) {
-                    var text;
-                    var sendData = requestData;
+            for (var i = 1; i <= 6; i++) {
+                var sendData = requestData;
 
-                    if (i == 2 || i == 3) {
+                if (i === 2) {
+                    sendData = new Array(n * 3).join('X');
+                }
+
+                if (navigator.sendBeacon(REQUEST_STAT_URL, sendData)) {
+                    text = 'Request #' + i + '. Completed. Length: ' +  sendData.length;
+                } else {
+                    text = 'Request #' + i + '. Failed. Length: ' +  sendData.length;
+                }
+
+                var $li = $('<li>').text(text);
+                $appendContainer.append($li);
+            }
+
+            setTimeout(function(){
+                var sendData = new Array(n+1).join('X');
+
+                for (var i = 7; i <= 13; i++) {
+
+                    if (i === 8) {
                         sendData = new Array(n * 3).join('X');
                     }
 
                     if (navigator.sendBeacon(REQUEST_STAT_URL, sendData)) {
-                        text = 'Request #' + i + '. Completed. Length:' +  sendData.length;
+                        text = 'Request #' + i + '. Completed. Length: ' +  sendData.length;
                     } else {
-                        text = 'Request #' + i + '. Failed. Length:' +  sendData.length;
+                        text = 'Request #' + i + '. Failed. Length: ' +  sendData.length;
                     }
-
                     var $li = $('<li>').text(text);
                     $appendContainer.append($li);
-                })(i);
-            }
+                }
+
+            }, 7000);
+
+            setTimeout(function(){
+                var sendData = new Array(n * 2).join('X');
+
+                for (var i = 14; i <= 18; i++) {
+
+                    if (i === 15) {
+                        sendData = new Array(n * 3).join('X');
+                    }
+
+                    if (navigator.sendBeacon(REQUEST_STAT_URL, sendData)) {
+                        text = 'Request #' + i + '. Completed. Length: ' +  sendData.length;
+                    } else {
+                        text = 'Request #' + i + '. Failed. Length: ' +  sendData.length;
+                    }
+                    var $li = $('<li>').text(text);
+                    $appendContainer.append($li);
+                }
+
+            }, 7500);
         });
 
         window.onbeforeunload = function () {
