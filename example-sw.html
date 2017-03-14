@@ -120,6 +120,10 @@
 
     Statistic.prototype.request = function () {
 
+        if (!this._isSystemReady) {
+            return false;
+        }
+
         if (this.data.length === 0) {
             this._syncData();
             return false;
