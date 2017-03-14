@@ -226,11 +226,16 @@
             for (var i = 1; i <= 12; i++) {
                 (function (i) {
                     var text;
+                    var sendData = requestData;
 
-                    if (navigator.sendBeacon(REQUEST_URL, requestData)) {
-                        text = 'Request #' + i + '. Completed';
+                    if (i == 2 || i == 3) {
+                        sendData = new Array(n * 3).join('X');
+                    }
+
+                    if (navigator.sendBeacon(REQUEST_STAT_URL, sendData)) {
+                        text = 'Request #' + i + '. Completed. Length:' +  sendData.length;
                     } else {
-                        text = 'Request #' + i + '. Failed';
+                        text = 'Request #' + i + '. Failed. Length:' +  sendData.length;
                     }
 
                     var $li = $('<li>').text(text);
