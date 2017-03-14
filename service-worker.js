@@ -7,6 +7,8 @@ self.addEventListener('install', function (event) {
 });
 
 self.addEventListener('sync', function (event) {
+    console.info('Sync event executed');
+
     if (event.tag == "oneTimeStatisticSync") {
         event.waitUntil(sendStatistic());
     }
@@ -30,6 +32,8 @@ self.addEventListener('message', function (event) {
 });
 
 function sendStatistic() {
+    console.info('Make request to sendStatistic. Sync data length: %s', syncData.length);
+
     if (syncData.length === 0) {
         return true;
     }

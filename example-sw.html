@@ -146,13 +146,15 @@
         return this._sendMessageToServiceWorker({
             command: 'stat',
             data: data
-        });
+        }).then(function(){
+            this._syncData();
+        }.bind(this));
     };
 
     Statistic.prototype._sendMessageToServiceWorker = function (message) {
         return navigator.serviceWorker.ready.then(function (registration) {
             navigator.serviceWorker.controller.postMessage(message);
-            return registration.sync.register('oneTimeStatisticSync');
+            return registration;
         });
     };
 
