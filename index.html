@@ -33,6 +33,10 @@
     <hr/>
     <a id="ex6" href="#" class="js-beacon-crossdomain">Example 6: Send 6 ajax and 6 beacon requests to other domain</a>
     <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex7" href="#" class="js-beacon-limit">Example 7: sendBeacon limit</a>
+    <ol class="js-results"></ol>
 </div>
 
 <script
@@ -61,7 +65,7 @@
         }, false);
 
         var $body = $('body');
-        var REQUEST_STAT_URL = 'http://local.localhost/testpool/server.php';
+        var REQUEST_STAT_URL = 'https://vexell.ru/files/testpool/server.php';
         var REQUEST_URL = './server.php';
         var REQUEST_DATA = {};
 
@@ -209,6 +213,28 @@
                         });
                     }
 
+                })(i);
+            }
+        });
+
+        $body.on('click', '.js-beacon-limit', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var n = 65536;
+            var requestData = new Array(n+1).join('X');
+
+            for (var i = 1; i <= 12; i++) {
+                (function (i) {
+                    var text;
+
+                    if (navigator.sendBeacon(REQUEST_URL, requestData)) {
+                        text = 'Request #' + i + '. Completed';
+                    } else {
+                        text = 'Request #' + i + '. Failed';
+                    }
+
+                    var $li = $('<li>').text(text);
+                    $appendContainer.append($li);
                 })(i);
             }
         });
