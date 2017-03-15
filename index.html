@@ -35,11 +35,11 @@
     <ol class="js-results"></ol>
 
     <hr/>
-    <a id="ex7" href="#" class="js-beacon-limit">Example 7: sendBeacon limit</a>
+    <a id="ex7" href="#" class="js-beacon-limit">Example 7: sendBeacon limit 32kb</a>
     <ol class="js-results"></ol>
 
     <hr/>
-    <a id="ex8" href="#" class="js-beacon-limit-2">Example 7: sendBeacon limit 2</a>
+    <a id="ex8" href="#" class="js-beacon-limit-2">Example 8: sendBeacon limit >= 64Kb</a>
     <ol class="js-results"></ol>
 </div>
 
@@ -233,11 +233,44 @@
             e.preventDefault();
             var $appendContainer = $(e.currentTarget).next('.js-results');
             var n = 65536;
-            var requestData = new Array(n * 2).join('X');
             var text;
 
-            for (var i = 1; i <= 6; i++) {
-                var sendData = requestData;
+            for (var i = 1; i <= 4; i++) {
+                var sendData = new Array(Math.round(n / 2)).join('X');
+
+                if (navigator.sendBeacon(REQUEST_URL, sendData)) {
+                    text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
+                } else {
+                    text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
+                }
+                var $li = $('<li>').text(text);
+                $appendContainer.append($li);
+            }
+
+            $appendContainer.append($('<div>').text('Waiting 5 seconds'));
+
+            setTimeout(function(){
+                var sendData = new Array(n + 1).join('X');
+
+                if (navigator.sendBeacon(REQUEST_URL, sendData)) {
+                    text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
+                } else {
+                    text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
+                }
+
+                var $li = $('<li>').text(text);
+                $appendContainer.append($li);
+            }, 5000);
+        });
+
+        $body.on('click', '.js-beacon-limit-2', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var n = 65536;
+            var text;
+
+            for (var i = 1; i <= 3; i++) {
+                var sendData = new Array(Math.round(n * (i+1))).join('X');
 
                 if (navigator.sendBeacon(REQUEST_URL, sendData)) {
                     text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
@@ -249,52 +282,18 @@
                 $appendContainer.append($li);
             }
 
-            $appendContainer.append($('<div>').text('Waiting 5 seconds'));
+            $appendContainer.append($('<div>').text('Waiting 3 seconds'));
 
             setTimeout(function(){
-                var sendData = new Array(n+1).join('X');
+                var sendData = new Array(n + 1).join('X');
 
-                for (var i = 7; i <= 13; i++) {
+                for (var i = 7; i <= 10; i++) {
 
-                    if (i >= 8) {
-                        sendData = new Array(n * 3).join('X');
-                    }
-
-                    if (navigator.sendBeacon(REQUEST_URL, sendData)) {
-                        text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
+                    if (i === 8) {
+                        sendData = new Array(n + 1).join('X');
                     } else {
-                        text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
+                        sendData = new Array(Math.round(n * (i+1))).join('X');
                     }
-                    var $li = $('<li>').text(text);
-                    $appendContainer.append($li);
-                }
-
-            }, 5000);
-
-            setTimeout(function(){
-                var sendData = new Array(n * 5).join('X');
-
-                for (var i = 14; i <= 18; i++) {
-                    if (navigator.sendBeacon(REQUEST_URL, sendData)) {
-                        text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
-                    } else {
-                        text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
-                    }
-                    var $li = $('<li>').text(text);
-                    $appendContainer.append($li);
-                }
-
-            }, 5500);
-
-            $body.on('click', '.js-beacon-limit-2', function (e) {
-                e.preventDefault();
-                var $appendContainer = $(e.currentTarget).next('.js-results');
-                var n = 65536;
-                var requestData = new Array(n * 7).join('X');
-                var text;
-
-                for (var i = 1; i <= 6; i++) {
-                    var sendData = requestData;
 
                     if (navigator.sendBeacon(REQUEST_URL, sendData)) {
                         text = 'Request #' + i + '. Completed. Length: ' +  bytesToSize(sendData.length);
@@ -305,7 +304,8 @@
                     var $li = $('<li>').text(text);
                     $appendContainer.append($li);
                 }
-            });
+
+            }, 3000);
         });
 
         window.onbeforeunload = function () {
