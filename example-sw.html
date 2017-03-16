@@ -51,11 +51,11 @@
 
         this.data = [];
 
-        this._debounceRequest = debounce(this.request.bind(this), 1500);
+        this._debounceSync = debounce(this._syncData.bind(this), 1500);
         this._isSystemReady = false;
 
         window.addEventListener('beforeunload', function (e) {
-            this.request();
+            this._syncData();
         }.bind(this), false);
 
         if ('serviceWorker' in navigator) {
@@ -106,55 +106,61 @@
 
     Statistic.prototype.ready = function () {
         this._isSystemReady = true;
-        this._debounceRequest();
+        this._executeSync();
     };
 
     Statistic.prototype.sendStatistic = function (data) {
         this.log('Put to queue');
         this.data.push(data);
-
-        if (this._isSystemReady) {
-            this._debounceRequest();
-        }
+        this._executeSync();
     };
 
-    Statistic.prototype.request = function () {
-
+    Statistic.prototype._executeSync = function () {
         if (!this._isSystemReady) {
             return false;
         }
 
         if (this.data.length === 0) {
-            this._syncData();
             return false;
         }
 
+        this._request().then(function() {
+            this._debounceSync();
+        }.bind(this));
+    };
+
+    Statistic.prototype._request = function () {
         this.log('Request to server. Data:' + JSON.stringify(this.data));
 
         var data = this.data.slice();
+        this.data = [];
 
-        this._makeRequest(data).then(function(){
+        return this._makeRequest(data).then(function(){
             this.log('Data has been successfully received to Service Worker');
         }.bind(this)).catch(function(){
             this.data = data.concat(this.data);
         }.bind(this));
-
-        this.data = [];
     };
 
     Statistic.prototype._makeRequest = function (data) {
         return this._sendMessageToServiceWorker({
             command: 'stat',
             data: data
-        }).then(function(){
-            this._syncData();
-        }.bind(this));
+        });
     };
 
     Statistic.prototype._sendMessageToServiceWorker = function (message) {
-        return navigator.serviceWorker.ready.then(function (registration) {
-            navigator.serviceWorker.controller.postMessage(message);
-            return registration;
+        return new Promise(function(resolve, reject) {
+            var messageChannel = new MessageChannel();
+            messageChannel.port1.onmessage = function(event) {
+                if (event.data.error) {
+                    reject(event.data.error);
+                } else {
+                    resolve(event.data);
+                }
+            };
+
+            navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
         });
     };
 

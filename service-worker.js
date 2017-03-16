@@ -29,6 +29,10 @@ self.addEventListener('message', function (event) {
     }
 
     console.log(`Data to sync ${JSON.stringify(syncData)}`);
+
+    event.ports[0].postMessage({
+        error: null
+    });
 });
 
 function sendStatistic() {
