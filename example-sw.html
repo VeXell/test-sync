@@ -78,6 +78,8 @@
                 .then(function (registration) {
                     console.info('Service worker was installer and ready to use');
 
+                    // Try set up periodic sync
+
                     if (registration.periodicSync) {
                         $container.find('.js-is-ps-enabled').text('Yes').addClass('label-success');
 
@@ -185,19 +187,19 @@
 
         $body.on('click', '.js-link', function (e) {
             e.preventDefault();
-            Stat.sendStatistic({t: e.currentTarget.dataset.link});
+            Stat.sendStatistic({t: e.currentTarget.dataset.link, time: new Date().toISOString()});
         });
 
         setTimeout(function () {
-            Stat.sendStatistic({timer: 1});
+            Stat.sendStatistic({timer: 1, time: new Date().toISOString()});
         }, 1000);
 
         setTimeout(function () {
-            Stat.sendStatistic({timer: 2});
+            Stat.sendStatistic({timer: 2, time: new Date().toISOString()});
         }, 2500);
 
         setTimeout(function () {
-            Stat.sendStatistic({timer: 3});
+            Stat.sendStatistic({timer: 3, time: new Date().toISOString()});
         }, 3500);
     });
 </script>
