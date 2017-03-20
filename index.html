@@ -15,11 +15,11 @@
     <ol class="js-results"></ol>
 
     <hr/>
-    <a id="ex2" href="#" class="js-request-analytics">Example 2: Send ajax data + analytics</a>
+    <a id="ex2" href="#" class="js-request-analytics">Example 2: Send ajax data + analytics + styles</a>
     <ol class="js-results"></ol>
 
     <hr/>
-    <a id="ex3" href="#" class="js-request-analytics-domain">Example 3: Send ajax data + analytics other domain</a>
+    <a id="ex3" href="#" class="js-request-analytics-domain">Example 3: Send ajax data + styles and analytics to other domain</a>
     <ol class="js-results"></ol>
 
     <hr/>
@@ -64,20 +64,19 @@
         var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
         if (i == 0) return bytes + ' ' + sizes[i];
         return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
-    };
+    }
 
     $(function () {
 
         var worker = new Worker('worker.js');
         worker.addEventListener('message', function (e) {
-            var $workerContainer = $('.js-worker-requests').next('.js-results');
             var $li = $('<li>').text(e.data);
-
             $workerContainer.append($li);
         }, false);
 
+        var $workerContainer;
         var $body = $('body');
-        var REQUEST_STAT_URL = 'http://local.localhost/files/testpool/server.php';
+        var REQUEST_STAT_URL = 'http://local.localhost/testpool/server.php';
         var REQUEST_URL = './server.php';
         var REQUEST_DATA = {};
 
@@ -88,7 +87,7 @@
             for (var i = 1; i <= 8; i++) {
                 (function (i) {
                     var startDate = new Date();
-                    sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                    fetch(REQUEST_URL + '?' + Math.random()).then(function () {
                         var endDate = new Date();
                         var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                         var $li = $('<li>').text(text);
@@ -103,16 +102,16 @@
             e.preventDefault();
             var $appendContainer = $(e.currentTarget).next('.js-results');
 
-            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles'));
+            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles' + '&t=' + Math.random()));
 
             for (var i = 1; i <= 6; i++) {
                 (function (i) {
                     var startDate = new Date();
 
                     if (i >= 2 && i <= 3) {
-                        sendAjax(REQUEST_URL + '?r=' + i + '&m=analytics');
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=analytics' + '&t=' + Math.random());
                     } else {
-                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request').done(function () {
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request' + '&t=' + Math.random()).then(function () {
                             var endDate = new Date();
                             var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                             var $li = $('<li>').text(text);
@@ -138,7 +137,7 @@
                     if (i >= 2 && i <= 3) {
                         sendAjax(REQUEST_STAT_URL + '?r=' + i + '&m=analytics');
                     } else {
-                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request').done(function () {
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=request' + '&t=' + Math.random()).then(function () {
                             var endDate = new Date();
                             var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                             var $li = $('<li>').text(text);
@@ -162,7 +161,7 @@
                     if (i >= 4 && i < 6) {
                         navigator.sendBeacon(REQUEST_URL, JSON.stringify(REQUEST_DATA));
                     } else {
-                        sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                        sendAjax(REQUEST_URL + '?t=' + Math.random()).then(function () {
                             var endDate = new Date();
                             var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                             var $li = $('<li>').text(text);
@@ -178,6 +177,7 @@
         $body.on('click', '.js-worker-requests', function (e) {
             e.preventDefault();
             var $appendContainer = $(e.currentTarget).next('.js-results');
+            $workerContainer = $appendContainer;
 
             for (var i = 1; i <= 12; i++) {
                 (function (i) {
@@ -191,7 +191,7 @@
                             i: i
                         }));
                     } else {
-                        sendAjax(REQUEST_URL + '?r=' + i, REQUEST_DATA).done(function () {
+                        sendAjax(REQUEST_URL + '?r=' + i, REQUEST_DATA).then(function () {
                             var endDate = new Date();
                             var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                             var $li = $('<li>').text(text);
@@ -216,7 +216,7 @@
                     if (i >= 7) {
                         navigator.sendBeacon(REQUEST_STAT_URL, JSON.stringify(REQUEST_DATA));
                     } else {
-                        sendAjax(REQUEST_URL, REQUEST_DATA).done(function () {
+                        sendAjax(REQUEST_URL, REQUEST_DATA).then(function () {
                             var endDate = new Date();
                             var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
                             var $li = $('<li>').text(text);

@@ -16,13 +16,13 @@ function executeRequestMethod(json) {
 }
 
 function sendStatistic(url, data, i) {
-	var startDate = new Date();
-	
+    var startDate = new Date();
+
     fetch(url, {
         body: data
-    }).then(function() {
-	    var endDate = new Date();
-	    var text = 'Request #' + i + ' (worker). Execution time: ' + ((endDate - startDate) / 1000) + 's';
+    }).then(function () {
+        var endDate = new Date();
+        var text = 'Request #' + i + ' (worker). Execution time: ' + ((endDate - startDate) / 1000) + 's';
         self.postMessage(text);
     });
 }
