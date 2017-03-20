@@ -41,6 +41,10 @@
     <hr/>
     <a id="ex8" href="#" class="js-beacon-limit-2">Example 8: sendBeacon limit >= 64Kb</a>
     <ol class="js-results"></ol>
+
+    <hr/>
+    <a id="ex9" href="#" class="js-fetch-beacon">Example 9: Fetch API + sendBeacon</a>
+    <ol class="js-results"></ol>
 </div>
 
 <script
@@ -306,6 +310,30 @@
                 }
 
             }, 3000);
+        });
+
+        $body.on('click', '.js-fetch-beacon', function (e) {
+            e.preventDefault();
+            var $appendContainer = $(e.currentTarget).next('.js-results');
+
+            for (var i = 1; i <= 12; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 4 && i < 10) {
+                        navigator.sendBeacon(REQUEST_URL, JSON.stringify(REQUEST_DATA));
+                    } else {
+                        fetch(REQUEST_URL + '?t=' + Math.random()).then(function () {
+                            var endDate = new Date();
+                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+                            var $li = $('<li>').text(text);
+
+                            $appendContainer.append($li);
+                        });
+                    }
+
+                })(i);
+            }
         });
 
         window.onbeforeunload = function () {
