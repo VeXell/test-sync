@@ -23,7 +23,7 @@
     <ol class="js-results"></ol>
 
     <hr/>
-    <a id="ex4" href="#" class="js-worker-requests">Example 4: Make Fetch API request in worker</a>
+    <a id="ex4" href="#" class="js-fetch-xhr">Example 4: Fetch API + XHR</a>
     <ol class="js-results"></ol>
 
     <hr/>
@@ -47,18 +47,30 @@
     <ol class="js-results"></ol>
 </div>
 
-<script
-        src="https://code.jquery.com/jquery-3.1.1.min.js"
-        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-        crossorigin="anonymous"></script>
 <script>
+    var REQUEST_STAT_URL = 'http://local.localhost/testpool/server.php';
+    var REQUEST_URL = './server.php';
+    var REQUEST_DATA = {};
 
     function sendAjax(url, data) {
-        return $.ajax({
-            url: url,
-            timeout: 60000,
-            async: true,
-            data: data
+        return new Promise(function(resolve, reject) {
+            var req = new XMLHttpRequest();
+            req.open('POST', url);
+
+            req.onload = function() {
+                if (req.readyState != 4) return;
+                if (req.status == 200) {
+                    resolve(req.response);
+                } else {
+                    reject(Error(req.statusText));
+                }
+            };
+
+            req.onerror = function() {
+                reject(Error("Network Error"));
+            };
+
+            req.send(data);
         });
     }
 
@@ -70,57 +82,59 @@
         return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
     }
 
-    $(function () {
+    function appendStylesheet(fileName) {
+        var head = document.head;
+        var link = document.createElement('link');
 
-        var worker = new Worker('worker.js');
-        worker.addEventListener('message', function (e) {
-            var $li = $('<li>').text(e.data);
-            $workerContainer.append($li);
-        }, false);
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.href = fileName;
 
-        var $workerContainer;
-        var $body = $('body');
-        var REQUEST_STAT_URL = 'http://local.localhost/testpool/server.php';
-        var REQUEST_URL = './server.php';
-        var REQUEST_DATA = {};
+        head.appendChild(link);
+    }
 
-        $body.on('click', '.js-ajax-requests', function (e) {
+    function logIt(startDate, requestId, $appendContainer) {
+        var endDate = new Date();
+        var text = 'Request #' + requestId + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
+        var $li = document.createElement('li');
+        $li.textContent = text;
+
+        $appendContainer.appendChild($li);
+    }
+
+    function domReady() {
+
+        document.querySelector('.js-ajax-requests').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
             for (var i = 1; i <= 8; i++) {
                 (function (i) {
                     var startDate = new Date();
-                    fetch(REQUEST_URL + '?' + Math.random()).then(function () {
-                        var endDate = new Date();
-                        var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                        var $li = $('<li>').text(text);
-
-                        $appendContainer.append($li);
+                    sendAjax(REQUEST_URL + '?' + Math.random()).then(function () {
+                        logIt(startDate, i, $appendContainer);
                     });
                 })(i);
             }
         });
 
-        $body.on('click', '.js-request-analytics', function (e) {
+        document.querySelector('.js-request-analytics').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
-            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles' + '&t=' + Math.random()));
+            appendStylesheet(REQUEST_URL + '?m=styles' + '&t=' + Math.random());
 
             for (var i = 1; i <= 6; i++) {
                 (function (i) {
                     var startDate = new Date();
 
                     if (i >= 2 && i <= 3) {
-                        sendAjax(REQUEST_URL + '?r=' + i + '&m=analytics' + '&t=' + Math.random());
+                        sendAjax(REQUEST_URL + '?r=' + i + '&m=analytics' + '&t=' + Math.random()).then(function(){
+                            logIt(startDate, i, $appendContainer);
+                        });
                     } else {
                         sendAjax(REQUEST_URL + '?r=' + i + '&m=request' + '&t=' + Math.random()).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
+                            logIt(startDate, i, $appendContainer);
                         });
                     }
 
@@ -128,35 +142,32 @@
             }
         });
 
-        $body.on('click', '.js-request-analytics-domain', function (e) {
+        document.querySelector('.js-request-analytics-domain').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
-            $('head').append($('<link rel="stylesheet" type="text/css" />').attr('href', REQUEST_URL + '?m=styles'));
+            appendStylesheet(REQUEST_URL + '?m=styles' + '&t=' + Math.random());
 
             for (var i = 1; i <= 6; i++) {
                 (function (i) {
                     var startDate = new Date();
 
                     if (i >= 2 && i <= 3) {
-                        sendAjax(REQUEST_STAT_URL + '?r=' + i + '&m=analytics');
+                        sendAjax(REQUEST_STAT_URL + '?r=' + i + '&m=analytics').then(function(){
+                            logIt(startDate, i, $appendContainer);
+                        });
                     } else {
                         sendAjax(REQUEST_URL + '?r=' + i + '&m=request' + '&t=' + Math.random()).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
+                            logIt(startDate, i, $appendContainer);
                         });
                     }
-
                 })(i);
             }
         });
 
-        $body.on('click', '.js-beacon-requests', function (e) {
+        document.querySelector('.js-beacon-requests').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
             for (var i = 1; i <= 8; i++) {
                 (function (i) {
@@ -166,52 +177,16 @@
                         navigator.sendBeacon(REQUEST_URL, JSON.stringify(REQUEST_DATA));
                     } else {
                         sendAjax(REQUEST_URL + '?t=' + Math.random()).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
+                            logIt(startDate, i, $appendContainer);
                         });
                     }
-
                 })(i);
             }
         });
 
-        $body.on('click', '.js-worker-requests', function (e) {
+        document.querySelector('.js-beacon-crossdomain').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
-            $workerContainer = $appendContainer;
-
-            for (var i = 1; i <= 12; i++) {
-                (function (i) {
-                    var startDate = new Date();
-
-                    if (i >= 7) {
-                        worker.postMessage(JSON.stringify({
-                            method: 'sendStatistic',
-                            url: REQUEST_URL + '?r=' + i + '&s=worker',
-                            data: REQUEST_DATA,
-                            i: i
-                        }));
-                    } else {
-                        sendAjax(REQUEST_URL + '?r=' + i, REQUEST_DATA).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
-                        });
-                    }
-
-                })(i);
-            }
-
-        });
-
-        $body.on('click', '.js-beacon-crossdomain', function (e) {
-            e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
             for (var i = 1; i <= 12; i++) {
                 (function (i) {
@@ -220,22 +195,17 @@
                     if (i >= 7) {
                         navigator.sendBeacon(REQUEST_STAT_URL, JSON.stringify(REQUEST_DATA));
                     } else {
-                        sendAjax(REQUEST_URL, REQUEST_DATA).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
+                        sendAjax(REQUEST_URL, JSON.stringify(REQUEST_DATA)).then(function () {
+                            logIt(startDate, i, $appendContainer);
                         });
                     }
-
                 })(i);
             }
         });
 
-        $body.on('click', '.js-beacon-limit', function (e) {
+        document.querySelector('.js-beacon-limit').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
             var n = 65536;
             var text;
 
@@ -247,11 +217,17 @@
                 } else {
                     text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
                 }
-                var $li = $('<li>').text(text);
-                $appendContainer.append($li);
+
+                var $li = document.createElement('li');
+                $li.textContent = text;
+
+                $appendContainer.appendChild($li);
             }
 
-            $appendContainer.append($('<div>').text('Waiting 5 seconds'));
+            var $div = document.createElement('li');
+            $div.textContent = 'Waiting 5 seconds';
+
+            $appendContainer.appendChild($div);
 
             setTimeout(function(){
                 var sendData = new Array(n + 1).join('X');
@@ -262,14 +238,16 @@
                     text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
                 }
 
-                var $li = $('<li>').text(text);
-                $appendContainer.append($li);
+                var $li = document.createElement('li');
+                $li.textContent = text;
+
+                $appendContainer.appendChild($li);
             }, 5000);
         });
 
-        $body.on('click', '.js-beacon-limit-2', function (e) {
+        document.querySelector('.js-beacon-limit-2').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
             var n = 65536;
             var text;
 
@@ -282,11 +260,16 @@
                     text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
                 }
 
-                var $li = $('<li>').text(text);
-                $appendContainer.append($li);
+                var $li = document.createElement('li');
+                $li.textContent = text;
+
+                $appendContainer.appendChild($li);
             }
 
-            $appendContainer.append($('<div>').text('Waiting 3 seconds'));
+            var $div = document.createElement('li');
+            $div.textContent = 'Waiting 3 seconds';
+
+            $appendContainer.appendChild($div);
 
             setTimeout(function(){
                 var sendData = new Array(n + 1).join('X');
@@ -305,16 +288,18 @@
                         text = 'Request #' + i + '. Failed. Length: ' +  bytesToSize(sendData.length);
                     }
 
-                    var $li = $('<li>').text(text);
-                    $appendContainer.append($li);
+                    var $li = document.createElement('li');
+                    $li.textContent = text;
+
+                    $appendContainer.appendChild($li);
                 }
 
             }, 3000);
         });
 
-        $body.on('click', '.js-fetch-beacon', function (e) {
+        document.querySelector('.js-fetch-beacon').addEventListener('click', function (e) {
             e.preventDefault();
-            var $appendContainer = $(e.currentTarget).next('.js-results');
+            var $appendContainer = e.currentTarget.nextElementSibling;
 
             for (var i = 1; i <= 12; i++) {
                 (function (i) {
@@ -323,12 +308,10 @@
                     if (i >= 4 && i < 10) {
                         navigator.sendBeacon(REQUEST_URL, JSON.stringify(REQUEST_DATA));
                     } else {
-                        fetch(REQUEST_URL + '?t=' + Math.random()).then(function () {
-                            var endDate = new Date();
-                            var text = 'Request #' + i + '. Execution time: ' + ((endDate - startDate) / 1000) + 's';
-                            var $li = $('<li>').text(text);
-
-                            $appendContainer.append($li);
+                        fetch(REQUEST_URL + '?t=' + Math.random(), {
+                            method: 'POST'
+                        }).then(function () {
+                            logIt(startDate, i, $appendContainer);
                         });
                     }
 
@@ -336,11 +319,37 @@
             }
         });
 
-        window.onbeforeunload = function () {
-            navigator.sendBeacon(REQUEST_URL + '?t=1', JSON.stringify(REQUEST_DATA));
-            //fetch(REQUEST_URL + '?t=1', {body: JSON.stringify(REQUEST_DATA)});
-        };
-    });
+        document.querySelector('.js-fetch-xhr').addEventListener('click', function (e) {
+            e.preventDefault();
+            var $appendContainer = e.currentTarget.nextElementSibling;
+
+            for (var i = 1; i <= 12; i++) {
+                (function (i) {
+                    var startDate = new Date();
+
+                    if (i >= 4 && i < 10) {
+                        sendAjax(REQUEST_URL, JSON.stringify(REQUEST_DATA)).then(function () {
+                            logIt(startDate, i, $appendContainer);
+                        });
+                    } else {
+                        fetch(REQUEST_URL + '?t=' + Math.random(), {
+                            method: 'POST'
+                        }).then(function () {
+                            logIt(startDate, i, $appendContainer);
+                        });
+                    }
+
+                })(i);
+            }
+        });
+    }
+
+    window.onbeforeunload = function () {
+        navigator.sendBeacon(REQUEST_URL + '?t=1', JSON.stringify(REQUEST_DATA));
+        //fetch(REQUEST_URL + '?t=1', {body: JSON.stringify(REQUEST_DATA)});
+    };
+
+    document.addEventListener("DOMContentLoaded", domReady);
 </script>
 </body>
 </html>
