@@ -111,7 +111,7 @@
             for (var i = 1; i <= 8; i++) {
                 (function (i) {
                     var startDate = new Date();
-                    sendAjax(REQUEST_URL + '?' + Math.random()).then(function () {
+                    sendAjax(REQUEST_URL + '?t=' + Math.random()).then(function () {
                         logIt(startDate, i, $appendContainer);
                     });
                 })(i);
